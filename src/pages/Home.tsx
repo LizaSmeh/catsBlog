@@ -1,23 +1,26 @@
-import { Box, Grid, Typography } from "@mui/material";
-import { useDispatch, useSelector } from "react-redux";
+import { Box, CircularProgress, Grid, Typography } from "@mui/material";
+import { useSelector } from "react-redux";
 import { type RootStore } from "../app/store";
-import { useEffect } from "react";
-import { getPosts } from "../features/posts/postsSlice";
 import { PostCard } from "../components";
 
 export const Home = () => {
-  const dispatch = useDispatch();
-  const posts = useSelector((state: RootStore) => state.posts.posts);
+ 
+  const {posts, loading, error} = useSelector((state: RootStore) => state.posts);
 
-  useEffect(() => {
-    dispatch(getPosts());
-  }, [dispatch]);
+  if(loading) {
+    return (
+      <Box display='flex' justifyContent='center' p={4}><CircularProgress/></Box>
+    )
+  }
+
+  if(error) {
+          <Box textAlign='center' p={4}><Typography color="error">Ошибка: {error}</Typography></Box>
+
+  }
 
   return (
     <Box p={2}>
-      <Typography variant="h4">Главная страница</Typography>
-
-      {posts.length === 0 ? (
+        {posts.length === 0 ? (
         <Typography variant="h6">Нет постов</Typography>
       ) : (
         <Grid container spacing={2}>

@@ -1,3 +1,5 @@
 export * from './Footer'
 export * from './Header'
 export * from './PostCard'
+export * from './CreatePost'
+export * from './PostReaction'

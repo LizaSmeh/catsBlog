@@ -1,15 +1,20 @@
 export interface Comment {
-    id: number;
+    id: string;
     text: string;
     user: string;
     createdAt: string;
 }
 
 export interface Post {
-    id: number;
+    id: string;
     titel: string;
     image: string;
     content: string;
-    comments: Comment[];
+    authorId: string;
+    authorEmail: string; 
+    comments: Record<string, Comment>;
     createdAt: string;
+    likes?: Record<string, boolean>; 
+    dislikes?: Record<string, boolean>; 
+    
 }

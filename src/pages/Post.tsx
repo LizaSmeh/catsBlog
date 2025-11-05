@@ -5,15 +5,15 @@ import {
   Divider,
   List,
   ListItem,
-  ListItemText,
   TextField,
   Typography,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
-import type { RootStore } from "../app/store";
+import type { AppDispatch, RootStore } from "../app/store";
 import { Controller, useForm } from "react-hook-form";
-import { addComment } from "../features/posts/postsSlice";
+import { addCommentAsync } from "../features/posts/postsSlice";
+import { PostReaction } from "../components";
 
 interface CommentForm {
   text: string;
@@ -21,7 +21,7 @@ interface CommentForm {
 
 export const Post = () => {
   const { id } = useParams<{ id: string }>();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -32,11 +32,10 @@ export const Post = () => {
     });
   };
   const post = useSelector((state: RootStore) =>
-    state.posts.posts.find((p) => p.id === Number(id))
+    state.posts.posts.find((p) => p.id === id)
   );
 
   const isAuth = useSelector((state: RootStore) => state.auth.isAuth);
-  const user = useSelector((state: RootStore) => state.auth.user);
 
   const {
     control,
@@ -50,13 +49,12 @@ export const Post = () => {
   });
 
   const onSubmit = (data: CommentForm) => {
-    if (post && user) {
+    if (id) {
       dispatch(
-        addComment({
-          postId: post.id,
+        addCommentAsync({
+          postId: id,
           comment: {
             text: data.text,
-            user,
           },
         })
       );
@@ -83,6 +81,7 @@ export const Post = () => {
       </Box>
     );
   }
+
   return (
     <Box
       p={{ xs: 1, sm: 2 }}
@@ -94,7 +93,7 @@ export const Post = () => {
         {post.titel}
       </Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>
-        Опубликованно: {formatDate(post.createdAt)}
+        Опубликованно: {formatDate(post.createdAt)} | Автор: {post.authorEmail}
       </Typography>
       <CardMedia
         component="img"
@@ -110,58 +109,140 @@ export const Post = () => {
       <Typography variant="body1" paragraph>
         {post.content}
       </Typography>
+      {isAuth && (
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          gap={2}
+          mt={3}
+          p={2}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            bgcolor: "background.paper",
+          }}
+        >
+          <PostReaction post={post} />
+        </Box>
+      )}
+
       <Divider sx={{ my: 2 }} />
       <Typography variant="h5" gutterBottom>
-        Комментарии
+        Комментарии ({Object.keys(post.comments).length})
       </Typography>
-      {post.comments.length === 0 ? (
+      {Object.keys(post.comments).length === 0 ? (
         <Typography>Нет комментариевю</Typography>
       ) : (
         <List>
-          {post.comments.map((comment) => (
+          {Object.values(post.comments).map((comment) => (
             <ListItem
               key={comment.id}
               sx={{
                 flexDirection: "column",
                 alignItems: "flex-start",
-                bgcolor: "background.paper",
-                borderRadius: 1,
-                p: 2,
+                p: 1,
                 mb: 1,
-                boxShadow: 1,
+                width: "100%",
+                boxSizing: "border-box",
               }}
             >
-              <ListItemText
-                primary={comment.user}
-                secondary={
-                  <>
-                    <Typography variant="caption" color="text.secondery">
-                      {formatDate(comment.createdAt)}
-                    </Typography>
-                  </>
-                }
-              />
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="500"
+                  color="text.primary"
+                  gutterBottom
+                >
+                  {comment.user}
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  mb={0.5}
+                >
+                  {formatDate(comment.createdAt)}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  wordBreak: "break-word",
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.5,
+                  bgcolor: "background.default",
+                  width: "100%",
+                  p: 1.5,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1.5,
+                  boxSizing: "border-box",
+                }}
+              >
+                <Typography variant="body2" color="text.primary">
+                  {comment.text}
+                </Typography>
+              </Box>
             </ListItem>
           ))}
         </List>
       )}
-      {isAuth ? <Box mt={3} sx={{ bgcolor: "background.paper", p:2, borderRadius:1, boxShadow: 1 }}>
-        <Typography variant="h6" gutterBottom>
-          Добавить комментарий
+      {isAuth ? (
+        <Box
+          mt={3}
+          sx={{
+            bgcolor: "background.paper",
+            p: 2,
+            borderRadius: 1,
+            boxShadow: 1,
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Добавить комментарий
+          </Typography>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Controller
+              name="text"
+              control={control}
+              rules={{
+                required: "Введите текст комментария",
+                minLength: {
+                  value: 5,
+                  message: "Минимум 5 символов",
+                },
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Ваш комментарий"
+                  multiline
+                  rows={4}
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.text}
+                  helperText={errors.text?.message}
+                />
+              )}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+            >
+              Отправить
+            </Button>
+          </form>
+        </Box>
+      ) : (
+        <Typography mt={2}>
+          <Link to="/login">Войдите</Link>, чтобы оставить комментарий.
         </Typography>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Controller name='text' control={control} rules={{
-            required: 'Введите текст комментария', minLength: {
-              value: 5, message: 'Минимум 5 символов'   }
-          }} 
-          render={({field}) => (
-            <TextField {...field} label='Ваш комментарий' multiline rows={4} fullWidth margin="normal" error={!!errors.text} helperText={errors.text?.message}/>
-          )}/>
-          <Button type='submit' variant='contained' color='primary' sx={{mt: 2}}>Отправить</Button>
-        </form>
-      </Box> : (<Typography mt={2}>
-        <Link to='/login'>Войдите</Link>, чтобы оставить комментарий.
-      </Typography>)}
+      )}
     </Box>
   );
 };

@@ -5,33 +5,30 @@ import type { RootStore } from "../app/store";
 import { Controller, useForm } from "react-hook-form";
 import { setUser } from "../features/auth/authSlice";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
-interface LoginForm {
+interface RegisterForm {
   email: string;
   password: string;
 }
 
-export const Login = () => {
+export const Register = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  const isAuth = useSelector((state: RootStore) => state.auth.isAuth);
-
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginForm>({
+  } = useForm<RegisterForm>({
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit = async (data: RegisterForm) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
       dispatch(setUser({ uid: user.uid, email: user.email }));
       navigate("/");
@@ -42,23 +39,10 @@ export const Login = () => {
     
   };
 
-  if (isAuth) {
-    return (
-      <Box p={2} textAlign="center">
-        <Typography variant="h4" gutterBottom>
-          Вы уже авторизованы
-        </Typography>
-        <Button component={Link} to="/" variant="contained" color="primary">
-          Вернуться на главную
-        </Button>
-      </Box>
-    );
-  }
-
-  return (
+   return (
     <Box p={2} maxWidth={400} mx="auto">
       <Typography variant="h4" gutterBottom>
-        Вход
+        Регистрация
       </Typography>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Controller
@@ -80,7 +64,7 @@ export const Login = () => {
         <Controller
           name="password"
           control={control}
-          rules={{ required: "Введите пароль" }}
+          rules={{ required: "Введите пароль", minLength: {value: 6, message: 'Пароль должен содержать минимум 6 символов'}}}
           render={({ field }) => (
             <TextField
               {...field}
@@ -93,7 +77,7 @@ export const Login = () => {
             />
           )}
         />
-        <Button type="submit" variant="contained" color="primary" fullWidth sx={{mt: 2}}>Войти</Button>
+        <Button type="submit" variant="contained" color="primary" fullWidth sx={{mt: 2}}>Зарегестрироваться</Button>
       </form>
     </Box>
   );

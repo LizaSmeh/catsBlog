@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { Routes, Route } from "react-router-dom";
-import { Home, Post, Login } from "./pages";
-import { Header, Footer } from "./components";
+import { Home, Post, Login, Register } from "./pages";
+import { Header, Footer, CreatePost } from "./components";
 
 function App() {
   return (
@@ -12,6 +12,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/post/:id" element={<Post />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/create" element={<CreatePost />} />
         </Routes>
       </Box>
       <Footer />

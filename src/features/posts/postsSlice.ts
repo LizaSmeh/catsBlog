@@ -1,104 +1,215 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { type Post, type Comment } from "../../types";
+import { child, get, onValue, push, ref, set, update } from "firebase/database";
+import { db } from "../../firebase";
+import type { RootStore } from "../../app/store";
+
 
 interface PostsState {
   posts: Post[];
+  loading: boolean;
+  error: string | null
 }
 
 const initialState: PostsState = {
-  posts:  [
-    {
-      id: 1,
-      titel: "10 фактов о Коче",
-      image:
-        "https://avatars.dzeninfra.ru/get-zen_doc/5212789/pub_631e66e5203515426a251e02_631e9fe64275de78d3708da8/scale_1200",
-      content:
-        "Повседневная практика показывает, что рамки и место обучения кадров способствует подготовки и реализации позиций, занимаемых участниками в отношении поставленных задач. Задача организации, в особенности же консультация с широким активом позволяет выполнять важные задания по разработке дальнейших направлений развития. Товарищи! реализация намеченных плановых заданий способствует подготовки и реализации соответствующий условий активизации. Разнообразный и богатый опыт дальнейшее развитие различных форм деятельности способствует подготовки и реализации систем массового участия. Повседневная практика показывает, что рамки и место обучения кадров влечет за собой процесс внедрения и модернизации форм развития. Повседневная практика показывает, что дальнейшее развитие различных форм деятельности позволяет выполнять важные задания по разработке систем массового участия.",
-      createdAt: "2025-10-14",
-      comments: [
-        { id: 1, text: "Коча лох!", user: "CatLover", createdAt: "2025-10-14" },
-        { id: 2, text: "Коча красотка!", user: "pikmi", createdAt: "2025-10-14" },
-      ],
-    },
-    {
-      id: 2,
-      titel: "10 фактов о Кисе",
-      image:
-        "https://i.pinimg.com/736x/8c/b6/1f/8cb61f5c432e146e4b9aad26cc5effbb.jpg",
-      content:
-        "Повседневная практика показывает, что рамки и место обучения кадров обеспечивает широкому кругу (специалистов) участие в формировании позиций, занимаемых участниками в отношении поставленных задач. Равным образом начало повседневной работы по формированию позиции влечет за собой процесс внедрения и модернизации направлений прогрессивного развития.",
-      createdAt: "2025-10-14",
-      comments: [
-             ],
-    },
-    {
-      id: 3,
-      titel: "10 фактов о Кисе",
-      image:
-        "https://i.pinimg.com/736x/8c/b6/1f/8cb61f5c432e146e4b9aad26cc5effbb.jpg",
-      content:
-        "Повседневная практика показывает, что рамки и место обучения кадров обеспечивает широкому кругу (специалистов) участие в формировании позиций, занимаемых участниками в отношении поставленных задач. Равным образом начало повседневной работы по формированию позиции влечет за собой процесс внедрения и модернизации направлений прогрессивного развития.",
-      createdAt: "2025-10-14",
-      comments: [
-             ],
-    },
-    {
-      id: 4,
-      titel: "10 фактов о Кисе",
-      image:
-        "https://i.pinimg.com/736x/8c/b6/1f/8cb61f5c432e146e4b9aad26cc5effbb.jpg",
-      content:
-        "Повседневная практика показывает, что рамки и место обучения кадров обеспечивает широкому кругу (специалистов) участие в формировании позиций, занимаемых участниками в отношении поставленных задач. Равным образом начало повседневной работы по формированию позиции влечет за собой процесс внедрения и модернизации направлений прогрессивного развития.",
-      createdAt: "2025-10-14",
-      comments: [
-             ],
-    },
-    {
-      id: 5,
-      titel: "10 фактов о Кисе",
-      image:
-        "https://i.pinimg.com/736x/8c/b6/1f/8cb61f5c432e146e4b9aad26cc5effbb.jpg",
-      content:
-        "Повседневная практика показывает, что рамки и место обучения кадров обеспечивает широкому кругу (специалистов) участие в формировании позиций, занимаемых участниками в отношении поставленных задач. Равным образом начало повседневной работы по формированию позиции влечет за собой процесс внедрения и модернизации направлений прогрессивного развития.",
-      createdAt: "2025-10-14",
-      comments: [
-             ],
-    },
-    {
-      id: 6,
-      titel: "10 фактов о Кисе",
-      image:
-        "https://i.pinimg.com/736x/8c/b6/1f/8cb61f5c432e146e4b9aad26cc5effbb.jpg",
-      content:
-        "Повседневная практика показывает, что рамки и место обучения кадров обеспечивает широкому кругу (специалистов) участие в формировании позиций, занимаемых участниками в отношении поставленных задач. Равным образом начало повседневной работы по формированию позиции влечет за собой процесс внедрения и модернизации направлений прогрессивного развития.",
-      createdAt: "2025-10-14",
-      comments: [
-             ],
-    },
-  ],
+  posts: [],
+  loading: true,
+  error: null
 };
+
+export const fetchPosts = createAsyncThunk("posts/tetchPosts", async (
+ ) => {
+    const postsRef = ref(db, 'posts')
+    return new Promise<Post[]>((res, rej) => {
+      const unsubscribe = onValue(
+       
+      postsRef, (snapshot) => {
+         console.log('hhihi', Object.keys(snapshot.val() || {}))
+        const data = snapshot.val();
+        if (!data) {
+          res([]);
+          return;
+        }
+        const posts: Post[] = Object.entries(data).map(([id, post]: [string, any]) => {
+          const comments: Record<string, Comment> = {};
+          if(post.comments) {
+            Object.entries(post.comments).forEach(([cid, c]:[string, any]) => {
+              comments[cid] = {
+                id: cid,
+                text: c.text,
+                user: c.user,
+                createdAt: c.createdAt
+        
+              }
+            })
+          }
+          return {
+            id, titel: post.titel,
+            content: post.content,
+            image: post.image,
+            authorId: post.authorId,
+            authorEmail: post.authorEmail,
+            createdAt: post.createdAt,
+            comments,
+            likes: post.likes || {},
+            dislikes: post.dislikes || {},
+            
+          }
+        })
+
+        posts.sort((a,b) => b.createdAt.localeCompare(a.createdAt))
+        res(posts);
+
+    },
+    (error) => {
+      rej(error)
+    }, 
+    {
+      onlyOnce: false
+    }
+
+  )
+    return () => unsubscribe()
+
+      })
+})  
+
+export const addPostAsync = createAsyncThunk(
+  "posts/addPost",
+  async (postData : { titel: string; content: string; image: string }, { getState }) => {
+    const state = getState() as RootStore;
+    const user = state.auth.user;
+    if(!user) throw new Error('Не авторизован')
+
+    const postRef = ref(db, `posts`);
+    const newPostRef = push(postRef);
+    const newPost = {
+      titel: postData.titel,
+      content: postData.content,
+      image: postData.image,
+      authorId: user.uid,
+      authorEmail: user.email,
+      createdAt: new Date().toISOString().split("T")[0],
+      comments: {},
+      likes: {},
+      dislikes: {}
+      
+    };
+
+    await set(newPostRef, newPost);
+    return { id: newPostRef.key!,
+      ...newPost,
+           } as Post;
+  }
+);
+
+export const addCommentAsync = createAsyncThunk(
+  "posts/addComment",
+  async ({ postId, comment }: { postId: string; comment: { text: string } }, { getState }) => {
+    const state = getState() as RootStore;
+    const authorEmail = state.auth.user?.email || "Аноним";
+
+    const commentRef = ref(db, `posts/${postId}/comments`);
+    const newCommentRef = push(commentRef);
+    const newComment = {
+      text: comment.text,
+      user: authorEmail,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+
+    await set(newCommentRef, newComment);
+    return { postId, comment: { id: newCommentRef.key!, ...newComment } };
+  }
+);
+
+export const toggleReactionAsync = createAsyncThunk(
+  "posts/toggleReaction",
+  async({postId, type}: {postId: string, type: 'like' | 'dislike'},
+    {getState}
+   )=> { 
+    const state = getState() as RootStore;
+    const user = state.auth.user;
+    if(!user) throw new Error('Не авторизован')
+      const userId = user.uid;
+    const postRef = ref(db);
+    const snapshot = await get(child(postRef, `posts/${postId}`));
+    const post = snapshot.val();
+    const likes = post.likes || {};
+    const dislikes = post.dislikes || {};
+    const alreadyLiked = !!likes[userId];
+    const alreadyDisliked = !!dislikes[userId];
+
+    const updates: Record<string, any> = {};
+    if(type === 'like') {
+      if(alreadyLiked) {
+        updates[`posts/${postId}/likes/${userId}`] = null;
+        } else {
+          updates[`posts/${postId}/likes/${userId}`] = true;
+          if(alreadyDisliked) updates[`posts/${postId}/dislikes/${userId}`] = null;
+        }
+    } else {
+      if(alreadyDisliked) {
+        updates[`posts/${postId}/dislikes/${userId}`] = null;
+        } else {
+          updates[`posts/${postId}/dislikes/${userId}`] = true;
+          if(alreadyLiked) updates[`posts/${postId}/likes/${userId}`] = null;
+        }
+
+    }
+      await update(ref(db), updates);
+      return {postId, userId, type}
+   }
+ 
+);
 
 const postSlice = createSlice({
     name: 'posts',
     initialState,
-    reducers: {
-        getPosts: (state) => {return state},
-        addComment: (
-            state,
-            action: PayloadAction<{postId: number; comment: Omit<Comment, 'id' | 'createdAt'>}>
-        ) => {
-            const post = state.posts.find((p) => p.id === action.payload.postId);
-            if (post) {
-                post.comments.push({
-                    id: post.comments.length + 1,
-                    ...action.payload.comment,
-                    createdAt: new Date().toISOString().split('T')[0],
-                });
-                localStorage.setItem('posts', JSON.stringify(state.posts))
-            }
-        }
+    reducers: {},
+    extraReducers: (builder) => {
+      builder.addCase(fetchPosts.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+
+      }).addCase(fetchPosts.fulfilled, (state, action) => {
+        state.loading = false;
+        state.posts = action.payload;
+      }).addCase(fetchPosts.rejected, (state,action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Ошибка загрузки'
+      }).addCase(addCommentAsync.fulfilled, (state, action) => {
+  const post = state.posts.find((p) => p.id === action.payload.postId);
+  if (post) {
+    post.comments[action.payload.comment.id] = action.payload.comment;
+  }
+}).addCase(addPostAsync.fulfilled, (state, action) => {
+  state.posts.unshift(action.payload)
+}).addCase(toggleReactionAsync.fulfilled, (state, action) => {
+  const { postId, userId, type } = action.payload;
+  const post = state.posts.find((p) => p.id === postId);
+  if (!post) return;
+
+  post.likes = post.likes || {};
+  post.dislikes = post.dislikes || {};
+
+  if (type === "like") {
+    if (post.likes[userId]) {
+      delete post.likes[userId];
+    } else {
+      post.likes[userId] = true;
+      delete post.dislikes[userId];
+    }
+  } else {
+    if (post.dislikes[userId]) {
+      delete post.dislikes[userId];
+    } else {
+      post.dislikes[userId] = true;
+      delete post.likes[userId];
+    }
+  }
+});
     }
 })
 
-export const {getPosts, addComment} = postSlice.actions;
+
 export default postSlice.reducer
